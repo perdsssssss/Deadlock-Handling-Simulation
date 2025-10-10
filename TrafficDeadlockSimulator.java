@@ -1,33 +1,34 @@
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import java.util.List;
+import javax.swing.*;
 import javax.swing.Timer;
 
 public class TrafficDeadlockSimulator extends JFrame {
     private TrafficPanel trafficPanel;
     private JButton addTopBtn, addBottomBtn, addLeftBtn, addRightBtn;
-    private JButton resetBtn, detectBtn, bankersBtn, toggleAllBtn;
+    private JButton resetBtn, bankersBtn, toggleAllBtn;
     private JTextArea statusArea;
     private JCheckBox bankersCheckBox;
 
     public TrafficDeadlockSimulator() {
-        setTitle("Traffic Deadlock Simulator - 2-Way Roads");
+        setTitle("Traffic Deadlock Simulator - Right Side Traffic");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
+        
+        setResizable(false);
+        setLocationRelativeTo(null);
 
         trafficPanel = new TrafficPanel(this);
 
-        // Control Panel
         JPanel controlPanel = new JPanel();
         controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
         controlPanel.setPreferredSize(new Dimension(250, 0));
         controlPanel.setBackground(new Color(240, 240, 240));
         controlPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Title
         JLabel titleLabel = new JLabel("Control Panel");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -36,14 +37,13 @@ public class TrafficDeadlockSimulator extends JFrame {
         controlPanel.add(new JSeparator());
         controlPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        // Banker's Algorithm Toggle
         bankersCheckBox = new JCheckBox("Banker's Algorithm (Deadlock Avoidance)");
         bankersCheckBox.setAlignmentX(Component.CENTER_ALIGNMENT);
         bankersCheckBox.setFont(new Font("Arial", Font.BOLD, 11));
+        bankersCheckBox.setSelected(true);
         controlPanel.add(bankersCheckBox);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        // Add Car Buttons
         JLabel addLabel = new JLabel("Add Car:");
         addLabel.setFont(new Font("Arial", Font.BOLD, 14));
         addLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -64,22 +64,17 @@ public class TrafficDeadlockSimulator extends JFrame {
         controlPanel.add(addRightBtn);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Action Buttons
         toggleAllBtn = createButton("🚦 Toggle All Lights", new Color(255, 140, 0));
-        detectBtn = createButton("🔍 Detect Deadlock (RAG)", new Color(220, 20, 60));
         bankersBtn = createButton("🛡️ Check Safe State", new Color(34, 139, 34));
         resetBtn = createButton("🔄 Reset", Color.GRAY);
 
         controlPanel.add(toggleAllBtn);
-        controlPanel.add(Box.createRigidArea(new Dimension(0, 5)));
-        controlPanel.add(detectBtn);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 5)));
         controlPanel.add(bankersBtn);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 5)));
         controlPanel.add(resetBtn);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Status Area
         JLabel statusLabel = new JLabel("Status:");
         statusLabel.setFont(new Font("Arial", Font.BOLD, 14));
         statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -95,13 +90,11 @@ public class TrafficDeadlockSimulator extends JFrame {
         scrollPane.setAlignmentX(Component.CENTER_ALIGNMENT);
         controlPanel.add(scrollPane);
 
-        // Button Actions
         addTopBtn.addActionListener(e -> trafficPanel.addCar("TOP"));
         addBottomBtn.addActionListener(e -> trafficPanel.addCar("BOTTOM"));
         addLeftBtn.addActionListener(e -> trafficPanel.addCar("LEFT"));
         addRightBtn.addActionListener(e -> trafficPanel.addCar("RIGHT"));
         resetBtn.addActionListener(e -> reset());
-        detectBtn.addActionListener(e -> detectDeadlockRAG());
         bankersBtn.addActionListener(e -> checkBankersAlgorithm());
         toggleAllBtn.addActionListener(e -> trafficPanel.toggleAllLights());
 
@@ -111,11 +104,26 @@ public class TrafficDeadlockSimulator extends JFrame {
         log("🚦 Traffic Simulator Ready!");
         log("━━━━━━━━━━━━━━━━━━━━━━━━");
         log("FEATURES:");
-        log("• 2-way roads (vertical & horizontal)");
-        log("• Banker's Algorithm (Avoidance)");
-        log("• RAG Detection");
+        log("• RIGHT SIDE TRAFFIC (all cars)");
+        log("• Smart Drivers with collision avoidance");
         log("• Click lights to control individually");
-        log("• Toggle All Lights button\n");
+        log("• Toggle All Lights button");
+        log("");
+        log("💡 USAGE:");
+        log("1. SMART DRIVERS ON (checkbox checked):");
+        log("   - Cars intelligently avoid collisions");
+        log("   - Drivers check for cross-traffic");
+        log("   - Safe even with all RED lights");
+        log("");
+        log("2. SMART DRIVERS OFF (checkbox unchecked):");
+        log("   - Cars follow lights strictly");
+        log("   - Can cause deadlock/collision");
+        log("   - Turn all lights RED to test!");
+        log("");
+        log("3. Try different scenarios:");
+        log("   - Add cars from all directions");
+        log("   - Toggle smart drivers ON/OFF");
+        log("   - Control lights manually\n");
     }
 
     private JButton createButton(String text, Color color) {
@@ -133,11 +141,6 @@ public class TrafficDeadlockSimulator extends JFrame {
         trafficPanel.reset();
         statusArea.setText("");
         log("🔄 System Reset Complete!\n");
-    }
-
-    private void detectDeadlockRAG() {
-        String result = trafficPanel.detectDeadlockRAG();
-        log("\n" + result);
     }
 
     private void checkBankersAlgorithm() {
@@ -163,28 +166,43 @@ public class TrafficDeadlockSimulator extends JFrame {
 
         private Map<String, Car> resourceAllocation = new HashMap<>();
 
-        private int centerX = 450;
-        private int centerY = 350;
-        private int roadWidth = 140; // Wider for clearer two lanes
+        private int roadWidth = 140;
         private int laneWidth = 40;
         private int intersectionSize = 120;
+        
+        private int getCenterX() { return getWidth() / 2; }
+        private int getCenterY() { return getHeight() / 2; }
+        
+        private void updateTrafficLightPositions(int centerX, int centerY) {
+            topLight.x = centerX;
+            topLight.y = centerY - intersectionSize/2 - 110;
+            bottomLight.x = centerX;
+            bottomLight.y = centerY + intersectionSize/2 + 110;
+            leftLight.x = centerX - intersectionSize/2 - 110;
+            leftLight.y = centerY;
+            rightLight.x = centerX + intersectionSize/2 + 110;
+            rightLight.y = centerY;
+        }
 
         private boolean deadlockDetected = false;
         private boolean deadlockShownDialog = false;
         private Random rand = new Random();
+        
+        private Map<String, Long> lastCarAddedTimeByDirection = new HashMap<>();
+        private static final long CAR_SPAWN_COOLDOWN_MS = 1000;
 
         public TrafficPanel(TrafficDeadlockSimulator parent) {
             this.parent = parent;
             setBackground(new Color(34, 139, 34));
+            
+            setPreferredSize(new Dimension(900, 700));
+            setMinimumSize(new Dimension(900, 700));
 
-            // Initialize traffic lights (moved further to the sides)
-            // Positions chosen to be noticeably away from the intersection
-            topLight = new TrafficLight(centerX - 0, centerY - intersectionSize/2 - 110, "TOP");
-            bottomLight = new TrafficLight(centerX - 0, centerY + intersectionSize/2 + 110, "BOTTOM");
-            leftLight = new TrafficLight(centerX - intersectionSize/2 - 110, centerY - 0, "LEFT");
-            rightLight = new TrafficLight(centerX + intersectionSize/2 + 110, centerY - 0, "RIGHT");
+            topLight = new TrafficLight(450, 240, "TOP");
+            bottomLight = new TrafficLight(450, 460, "BOTTOM");
+            leftLight = new TrafficLight(340, 350, "LEFT");
+            rightLight = new TrafficLight(560, 350, "RIGHT");
 
-            // Mouse listener for traffic lights
             addMouseListener(new MouseAdapter() {
                 public void mouseClicked(MouseEvent e) {
                     int x = e.getX();
@@ -204,7 +222,6 @@ public class TrafficDeadlockSimulator extends JFrame {
                         parent.log("🚦 RIGHT Light: " + (rightLight.isGreen ? "GREEN ✅" : "RED 🛑"));
                     }
 
-                    // If any light turns green, clear deadlock overlay
                     if (topLight.isGreen || bottomLight.isGreen || leftLight.isGreen || rightLight.isGreen) {
                         deadlockDetected = false;
                         deadlockShownDialog = false;
@@ -213,7 +230,6 @@ public class TrafficDeadlockSimulator extends JFrame {
                 }
             });
 
-            // Animation timer
             timer = new Timer(30, e -> {
                 updateCars();
                 detectCollisions();
@@ -223,7 +239,6 @@ public class TrafficDeadlockSimulator extends JFrame {
         }
 
         public void toggleAllLights() {
-            // Toggle all lights to opposite state
             boolean newState = !topLight.isGreen;
             topLight.isGreen = newState;
             bottomLight.isGreen = newState;
@@ -232,7 +247,6 @@ public class TrafficDeadlockSimulator extends JFrame {
 
             parent.log("🚦 ALL LIGHTS: " + (newState ? "GREEN ✅" : "RED 🛑"));
 
-            // if turned green, clear deadlock
             if (newState) {
                 deadlockDetected = false;
                 deadlockShownDialog = false;
@@ -241,167 +255,74 @@ public class TrafficDeadlockSimulator extends JFrame {
         }
 
         public void addCar(String direction) {
-            // Banker's Algorithm Check
-            if (parent.isBankersEnabled()) {
-                if (!isSafeToAddCar(direction)) {
-                    parent.log("🛑 BANKER'S: Unsafe to add car from " + direction);
-                    JOptionPane.showMessageDialog(parent,
-                            "Banker's Algorithm prevented deadlock!\n" +
-                                    "Adding this car would create an unsafe state.",
-                            "Deadlock Avoidance",
-                            JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
+            long currentTime = System.currentTimeMillis();
+            long lastAddedTime = lastCarAddedTimeByDirection.getOrDefault(direction, 0L);
+            
+            if (currentTime - lastAddedTime < CAR_SPAWN_COOLDOWN_MS) {
+                long remainingTime = (CAR_SPAWN_COOLDOWN_MS - (currentTime - lastAddedTime)) / 1000;
+                parent.log("⏳ Please wait " + (remainingTime + 1) + " second(s) before adding another car from " + direction);
+                return;
             }
 
-            // choose random lane: -1 or +1
-            int laneChoice = rand.nextBoolean() ? -1 : 1;
-            cars.add(new Car(carIdCounter++, direction, laneChoice));
-            parent.log("🚗 Car #" + (carIdCounter - 1) + " added from " + direction + " (lane " + (laneChoice == -1 ? "A" : "B") + ")");
-        }
-
-        private boolean isSafeToAddCar(String direction) {
-            int topCount = 0, bottomCount = 0, leftCount = 0, rightCount = 0;
-
-            for (Car car : cars) {
-                if (car.direction.equals("TOP")) topCount++;
-                if (car.direction.equals("BOTTOM")) bottomCount++;
-                if (car.direction.equals("LEFT")) leftCount++;
-                if (car.direction.equals("RIGHT")) rightCount++;
-            }
-
-            if (direction.equals("TOP")) topCount++;
-            if (direction.equals("BOTTOM")) bottomCount++;
-            if (direction.equals("LEFT")) leftCount++;
-            if (direction.equals("RIGHT")) rightCount++;
-
-            boolean topRed = !topLight.isGreen;
-            boolean bottomRed = !bottomLight.isGreen;
-            boolean leftRed = !leftLight.isGreen;
-            boolean rightRed = !rightLight.isGreen;
-
-            int dangerousDirections = 0;
-            if (topCount >= 1 && topRed) dangerousDirections++;
-            if (bottomCount >= 1 && bottomRed) dangerousDirections++;
-            if (leftCount >= 1 && leftRed) dangerousDirections++;
-            if (rightCount >= 1 && rightRed) dangerousDirections++;
-
-            return dangerousDirections < 4;
+            cars.add(new Car(carIdCounter++, direction, 1));
+            parent.log("🚗 Car #" + (carIdCounter - 1) + " added from " + direction + " (RIGHT lane)");
+            
+            lastCarAddedTimeByDirection.put(direction, currentTime);
         }
 
         public String checkBankersSafeState() {
             StringBuilder sb = new StringBuilder();
-            sb.append("🛡️ BANKER'S ALGORITHM CHECK\n");
+            sb.append("🧠 SMART DRIVER STATUS\n");
             sb.append("━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-            int topCount = 0, bottomCount = 0, leftCount = 0, rightCount = 0;
-            int topWaiting = 0, bottomWaiting = 0, leftWaiting = 0, rightWaiting = 0;
+            int[] allocation = new int[4];
+            int[] waiting = new int[4];
+            boolean[] lights = new boolean[4];
+            String[] dirNames = {"TOP", "BOTTOM", "LEFT", "RIGHT"};
 
             for (Car car : cars) {
-                if (car.direction.equals("TOP")) {
-                    topCount++;
-                    if (car.isWaitingAtLight()) topWaiting++;
-                }
-                if (car.direction.equals("BOTTOM")) {
-                    bottomCount++;
-                    if (car.isWaitingAtLight()) bottomWaiting++;
-                }
-                if (car.direction.equals("LEFT")) {
-                    leftCount++;
-                    if (car.isWaitingAtLight()) leftWaiting++;
-                }
-                if (car.direction.equals("RIGHT")) {
-                    rightCount++;
-                    if (car.isWaitingAtLight()) rightWaiting++;
+                int dirIndex = getDirectionIndex(car.direction);
+                allocation[dirIndex]++;
+                if (car.isWaitingAtLight()) {
+                    waiting[dirIndex]++;
                 }
             }
 
-            sb.append("Resource Status:\n");
-            sb.append("TOP: " + topCount + " cars (" + topWaiting + " waiting)\n");
-            sb.append("BOTTOM: " + bottomCount + " cars (" + bottomWaiting + " waiting)\n");
-            sb.append("LEFT: " + leftCount + " cars (" + leftWaiting + " waiting)\n");
-            sb.append("RIGHT: " + rightCount + " cars (" + rightWaiting + " waiting)\n\n");
+            lights[0] = topLight.isGreen;
+            lights[1] = bottomLight.isGreen;
+            lights[2] = leftLight.isGreen;
+            lights[3] = rightLight.isGreen;
 
-            int waitingDirections = 0;
-            if (topWaiting > 0 && !topLight.isGreen) waitingDirections++;
-            if (bottomWaiting > 0 && !bottomLight.isGreen) waitingDirections++;
-            if (leftWaiting > 0 && !leftLight.isGreen) waitingDirections++;
-            if (rightWaiting > 0 && !rightLight.isGreen) waitingDirections++;
+            sb.append("Current Traffic Status:\n");
+            for (int i = 0; i < 4; i++) {
+                String lightStatus = lights[i] ? "🟢 GREEN" : "🔴 RED";
+                sb.append(dirNames[i] + ": " + allocation[i] + " cars (" + waiting[i] + " waiting) - " + lightStatus + "\n");
+            }
+            sb.append("\n");
 
-            if (waitingDirections >= 4) {
-                sb.append("⚠️ STATE: UNSAFE\n");
-                sb.append("System is in potential deadlock state!\n");
+            if (parent.isBankersEnabled()) {
+                sb.append("✅ BANKER'S ALGORITHM: ACTIVE\n");
+                sb.append("Cars are intelligently avoiding collisions.\n");
+                sb.append("Drivers check for cross-traffic before entering.\n");
+                sb.append("Safe operation even with manual light control.\n");
             } else {
-                sb.append("✅ STATE: SAFE\n");
-                sb.append("System can proceed safely.\n");
+                sb.append("⚠️ BANKER'S ALGORITHM: DISABLED\n");
+                sb.append("Cars follow traffic lights strictly.\n");
+                sb.append("Risk of deadlock/collision when all lights are RED.\n");
+                sb.append("Enable Banker's Algorithm for safer operation.\n");
             }
 
             return sb.toString();
         }
-
-        public String detectDeadlockRAG() {
-            StringBuilder sb = new StringBuilder();
-            sb.append("🔍 RAG DEADLOCK DETECTION\n");
-            sb.append("━━━━━━━━━━━━━━━━━━━━━━━━\n");
-
-            Map<String, List<Car>> waitingCars = new HashMap<>();
-            waitingCars.put("TOP", new ArrayList<>());
-            waitingCars.put("BOTTOM", new ArrayList<>());
-            waitingCars.put("LEFT", new ArrayList<>());
-            waitingCars.put("RIGHT", new ArrayList<>());
-
-            for (Car car : cars) {
-                if (car.isWaitingAtLight()) {
-                    waitingCars.get(car.direction).add(car);
-                }
+        
+        private int getDirectionIndex(String direction) {
+            switch (direction) {
+                case "TOP": return 0;
+                case "BOTTOM": return 1;
+                case "LEFT": return 2;
+                case "RIGHT": return 3;
+                default: return 0;
             }
-
-            sb.append("Resource Allocation Graph:\n");
-            for (String dir : new String[]{"TOP", "BOTTOM", "LEFT", "RIGHT"}) {
-                List<Car> waiting = waitingCars.get(dir);
-                if (!waiting.isEmpty()) {
-                    sb.append(dir + " → [");
-                    for (int i = 0; i < waiting.size(); i++) {
-                        sb.append("Car#" + waiting.get(i).id);
-                        if (i < waiting.size() - 1) sb.append(", ");
-                    }
-                    sb.append("]\n");
-                }
-            }
-            sb.append("\n");
-
-            boolean allRed = !topLight.isGreen && !bottomLight.isGreen &&
-                    !leftLight.isGreen && !rightLight.isGreen;
-
-            int directionsWithWaiting = 0;
-            for (List<Car> waiting : waitingCars.values()) {
-                if (!waiting.isEmpty()) directionsWithWaiting++;
-            }
-
-            if (allRed && directionsWithWaiting == 4) {
-                sb.append("🚨 DEADLOCK DETECTED!\n");
-                sb.append("━━━━━━━━━━━━━━━━━━━━━━━━\n");
-                sb.append("Circular wait detected:\n");
-                sb.append("• All 4 directions have waiting cars\n");
-                sb.append("• All traffic lights are RED\n");
-                sb.append("• No car can proceed\n\n");
-                sb.append("SOLUTION:\n");
-                sb.append("Turn at least one light GREEN!\n");
-
-                JOptionPane.showMessageDialog(parent,
-                        "🚨 DEADLOCK DETECTED!\n\n" +
-                                "RAG Analysis shows circular wait:\n" +
-                                "All cars are blocked waiting for resources.\n\n" +
-                                "Solution: Turn one light GREEN to break the cycle!",
-                        "Deadlock Found - RAG Detection",
-                        JOptionPane.ERROR_MESSAGE);
-                deadlockDetected = true;
-            } else {
-                sb.append("✅ NO DEADLOCK\n");
-                sb.append("System is progressing normally.\n");
-            }
-
-            return sb.toString();
         }
 
         public void reset() {
@@ -414,6 +335,7 @@ public class TrafficDeadlockSimulator extends JFrame {
             rightLight.isGreen = true;
             deadlockDetected = false;
             deadlockShownDialog = false;
+            lastCarAddedTimeByDirection.clear();
         }
 
         private void updateCars() {
@@ -430,55 +352,60 @@ public class TrafficDeadlockSimulator extends JFrame {
             }
         }
 
-        // collision detection between car rectangles => set deadlock overlay
         private void detectCollisions() {
-            // If already detected, keep overlay unless a light becomes green
             if (deadlockDetected) {
                 return;
             }
 
-            for (int i = 0; i < cars.size(); i++) {
-                Car a = cars.get(i);
-                Rectangle ra = a.getBounds();
-                for (int j = i + 1; j < cars.size(); j++) {
-                    Car b = cars.get(j);
-                    Rectangle rb = b.getBounds();
-                    if (ra.intersects(rb)) {
-                        // Collision/overlap detected — show deadlock overlay
-                        deadlockDetected = true;
-                        parent.log("🚨 COLLISION / DEADLOCK: Car#" + a.id + " & Car#" + b.id);
-                        // show a dialog once too
-                        if (!deadlockShownDialog) {
-                            JOptionPane.showMessageDialog(parent,
-                                    "🚨 DEADLOCK / COLLISION DETECTED!\n\n" +
-                                            "Cars overlapped. Overlay showing \"DEADLOCK\".",
-                                    "Deadlock Detected",
-                                    JOptionPane.ERROR_MESSAGE);
-                            deadlockShownDialog = true;
+            // Only check collisions when Smart Drivers is DISABLED
+            if (!parent.isBankersEnabled()) {
+                for (int i = 0; i < cars.size(); i++) {
+                    Car a = cars.get(i);
+                    Rectangle ra = a.getBounds();
+                    for (int j = i + 1; j < cars.size(); j++) {
+                        Car b = cars.get(j);
+                        Rectangle rb = b.getBounds();
+                        
+                        if (ra.intersects(rb)) {
+                            if ((a.inIntersection || b.inIntersection) || (!a.waiting && !b.waiting)) {
+                                deadlockDetected = true;
+                                parent.log("🚨 DEADLOCK: Car#" + a.id + " & Car#" + b.id + " collided!");
+                                if (!deadlockShownDialog) {
+                                    JOptionPane.showMessageDialog(parent,
+                                            "🚨 DEADLOCK DETECTED!\n\n" +
+                                                    "Car#" + a.id + " and Car#" + b.id + " collided!\n" +
+                                                    "This happened because Banker's Algorithm is disabled.\n\n" +
+                                                    "Enable Banker's Algorithm to prevent DEADLOCK!",
+                                            "DEADLOCK",
+                                            JOptionPane.ERROR_MESSAGE);
+                                    deadlockShownDialog = true;
+                                }
+                                return;
+                            }
                         }
-                        return;
                     }
                 }
-            }
 
-            // also set deadlock if all four directions waiting and all lights red
-            boolean allRed = !topLight.isGreen && !bottomLight.isGreen && !leftLight.isGreen && !rightLight.isGreen;
-            boolean tWait = false, bWait = false, lWait = false, rWait = false;
-            for (Car c : cars) {
-                if (c.direction.equals("TOP") && c.isWaitingAtLight()) tWait = true;
-                if (c.direction.equals("BOTTOM") && c.isWaitingAtLight()) bWait = true;
-                if (c.direction.equals("LEFT") && c.isWaitingAtLight()) lWait = true;
-                if (c.direction.equals("RIGHT") && c.isWaitingAtLight()) rWait = true;
-            }
-            if (allRed && tWait && bWait && lWait && rWait) {
-                deadlockDetected = true;
-                if (!deadlockShownDialog) {
-                    JOptionPane.showMessageDialog(parent,
-                            "🚨 DEADLOCK DETECTED (circular wait)!\n\n" +
-                                    "All directions waiting and all lights RED.",
-                            "Deadlock Detected",
-                            JOptionPane.ERROR_MESSAGE);
-                    deadlockShownDialog = true;
+                boolean allRed = !topLight.isGreen && !bottomLight.isGreen && !leftLight.isGreen && !rightLight.isGreen;
+                boolean tWait = false, bWait = false, lWait = false, rWait = false;
+                for (Car c : cars) {
+                    if (c.direction.equals("TOP") && c.isWaitingAtLight()) tWait = true;
+                    if (c.direction.equals("BOTTOM") && c.isWaitingAtLight()) bWait = true;
+                    if (c.direction.equals("LEFT") && c.isWaitingAtLight()) lWait = true;
+                    if (c.direction.equals("RIGHT") && c.isWaitingAtLight()) rWait = true;
+                }
+                if (allRed && tWait && bWait && lWait && rWait) {
+                    deadlockDetected = true;
+                    if (!deadlockShownDialog) {
+                        JOptionPane.showMessageDialog(parent,
+                                "🚨 DEADLOCK DETECTED!\n\n" +
+                                        "All directions waiting and all lights RED.\n" +
+                                        "This is a classic circular wait deadlock.\n\n" +
+                                        "Enable Banker's Algorithm to prevent this!",
+                                "Deadlock Detected",
+                                JOptionPane.ERROR_MESSAGE);
+                        deadlockShownDialog = true;
+                    }
                 }
             }
         }
@@ -489,70 +416,66 @@ public class TrafficDeadlockSimulator extends JFrame {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            // Draw roads
-            g2.setColor(new Color(60, 60, 60));
-            // Vertical road (2-way)
-            g2.fillRect(centerX - roadWidth / 2, 0, roadWidth, getHeight());
-            // Horizontal road (2-way)
-            g2.fillRect(0, centerY - roadWidth / 2, getWidth(), roadWidth);
+            int panelWidth = getWidth();
+            int panelHeight = getHeight();
+            int centerX = panelWidth / 2;
+            int centerY = panelHeight / 2;
 
-            // Draw intersection
+            updateTrafficLightPositions(centerX, centerY);
+
+            g2.setColor(new Color(60, 60, 60));
+            g2.fillRect(centerX - roadWidth / 2, 0, roadWidth, panelHeight);
+            g2.fillRect(0, centerY - roadWidth / 2, panelWidth, roadWidth);
+
             g2.setColor(new Color(70, 70, 70));
             g2.fillRect(centerX - intersectionSize / 2, centerY - intersectionSize / 2,
                     intersectionSize, intersectionSize);
 
-            // Draw road markings (center yellow line)
             g2.setColor(Color.YELLOW);
             g2.setStroke(new BasicStroke(3, BasicStroke.CAP_BUTT,
                     BasicStroke.JOIN_BEVEL, 0, new float[]{20, 20}, 0));
 
-            // Vertical center line
             g2.drawLine(centerX, 0, centerX, centerY - intersectionSize / 2 - 5);
-            g2.drawLine(centerX, centerY + intersectionSize / 2 + 5, centerX, getHeight());
-
-            // Horizontal center line
+            g2.drawLine(centerX, centerY + intersectionSize / 2 + 5, centerX, panelHeight);
             g2.drawLine(0, centerY, centerX - intersectionSize / 2 - 5, centerY);
-            g2.drawLine(centerX + intersectionSize / 2 + 5, centerY, getWidth(), centerY);
+            g2.drawLine(centerX + intersectionSize / 2 + 5, centerY, panelWidth, centerY);
 
-            // Draw traffic lights (now moved to sides)
             topLight.draw(g2);
             bottomLight.draw(g2);
             leftLight.draw(g2);
             rightLight.draw(g2);
 
-            // Draw cars
             for (Car car : cars) {
                 car.draw(g2);
             }
 
-            // Draw info
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 14));
             g2.drawString("Cars: " + cars.size(), 10, 20);
             g2.setFont(new Font("Arial", Font.PLAIN, 12));
-            g2.drawString("Banker's: " + (parent.isBankersEnabled() ? "ON" : "OFF"), 10, 40);
-            g2.drawString("2-Way Roads", 10, 60);
+            g2.drawString("Banker's Algorithm: " + (parent.isBankersEnabled() ? "ON 🧠" : "OFF"), 10, 40);
+            g2.drawString(parent.isBankersEnabled() ? "Mode: Deadlock Avoidance ✅" : "Mode: Strict Light Following ⚠️", 10, 60);
+            g2.drawString("Right Side Traffic", 10, 80);
 
-            // Deadlock overlay panel
             if (deadlockDetected) {
                 Composite old = g2.getComposite();
                 g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.55f));
                 g2.setColor(Color.RED);
-                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.fillRect(0, 0, panelWidth, panelHeight);
                 g2.setComposite(old);
 
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("Arial", Font.BOLD, 72));
-                String text = "DEADLOCK";
+                String text = "DEADLOCK!";
                 FontMetrics fm = g2.getFontMetrics();
-                int tx = (getWidth() - fm.stringWidth(text)) / 2;
-                int ty = (getHeight() / 2) - fm.getHeight() / 2 + fm.getAscent();
+                int tx = (panelWidth - fm.stringWidth(text)) / 2;
+                int ty = (panelHeight / 2) - fm.getHeight() / 2 + fm.getAscent();
                 g2.drawString(text, tx, ty);
 
                 g2.setFont(new Font("Arial", Font.BOLD, 20));
-                String sub = "Turn a light GREEN to resolve";
+                String sub = "Enable Banker's Algorithm to prevent this";
                 FontMetrics fm2 = g2.getFontMetrics();
-                int sx = (getWidth() - fm2.stringWidth(sub)) / 2;
+                int sx = (panelWidth - fm2.stringWidth(sub)) / 2;
                 g2.drawString(sub, sx, ty + 50);
             }
         }
@@ -579,20 +502,16 @@ public class TrafficDeadlockSimulator extends JFrame {
             }
 
             public void draw(Graphics2D g2) {
-                // Black box background
                 g2.setColor(Color.BLACK);
                 g2.fillRoundRect(x - size / 2, y - size / 2, size, size, 8, 8);
 
-                // Light
                 g2.setColor(isGreen ? new Color(0, 255, 0) : new Color(255, 0, 0));
                 g2.fillOval(x - size / 2 + 6, y - size / 2 + 6, size - 12, size - 12);
 
-                // Border
                 g2.setColor(Color.YELLOW);
                 g2.setStroke(new BasicStroke(2));
                 g2.drawRoundRect(x - size / 2, y - size / 2, size, size, 8, 8);
 
-                // Label
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("Arial", Font.BOLD, 12));
                 FontMetrics fm = g2.getFontMetrics();
@@ -610,8 +529,10 @@ public class TrafficDeadlockSimulator extends JFrame {
             boolean inIntersection = false;
             boolean completed = false;
             double speed = 2.5;
+            double maxSpeed = 2.5;
+            double acceleration = 0.1;
             String allocatedResource = null;
-            int lane; // -1 or +1
+            int lane;
 
             public Car(int id, String direction, int lane) {
                 this.id = id;
@@ -624,24 +545,37 @@ public class TrafficDeadlockSimulator extends JFrame {
                         100 + rand.nextInt(155)
                 );
 
-                // Starting position (2-way roads), choose lane offset
-                int offset = lane * (laneWidth / 2 + 8); // offset from center lane
+                int panelWidth = getWidth();
+                int panelHeight = getHeight();
+                int centerX = panelWidth / 2;
+                int centerY = panelHeight / 2;
+
+                int carSpacing = 80;
+                int carsInSameDirection = 0;
+                
+                for (Car existingCar : cars) {
+                    if (existingCar.direction.equals(direction)) {
+                        carsInSameDirection++;
+                    }
+                }
+
+                int offset = (laneWidth / 2 + 8);
                 switch (direction) {
                     case "TOP":
-                        x = centerX + offset; // two lanes horizontally
-                        y = -30;
+                        x = centerX + offset;
+                        y = -30 - (carsInSameDirection * carSpacing);
                         break;
                     case "BOTTOM":
-                        x = centerX - offset; // mirror lane so cars face up
-                        y = getHeight() + 30;
+                        x = centerX - offset;
+                        y = panelHeight + 30 + (carsInSameDirection * carSpacing);
                         break;
                     case "LEFT":
-                        x = -30;
-                        y = centerY + offset; // two lanes vertically
+                        x = -30 - (carsInSameDirection * carSpacing);
+                        y = centerY + offset;
                         break;
                     case "RIGHT":
-                        x = getWidth() + 30;
-                        y = centerY - offset; // mirror lane so cars face left
+                        x = panelWidth + 30 + (carsInSameDirection * carSpacing);
+                        y = centerY - offset;
                         break;
                 }
             }
@@ -661,9 +595,142 @@ public class TrafficDeadlockSimulator extends JFrame {
                     return new Rectangle((int)x - 12, (int)y - 20, 24, 40);
                 }
             }
+            
+            private boolean isCarTooClose() {
+                double minDistance = 60;
+                
+                for (Car otherCar : cars) {
+                    if (otherCar == this) continue;
+                    
+                    if (otherCar.direction.equals(this.direction)) {
+                        double distance = getDistanceTo(otherCar);
+                        
+                        boolean otherCarInFront = false;
+                        switch (direction) {
+                            case "TOP":
+                                otherCarInFront = otherCar.y > this.y;
+                                break;
+                            case "BOTTOM":
+                                otherCarInFront = otherCar.y < this.y;
+                                break;
+                            case "LEFT":
+                                otherCarInFront = otherCar.x > this.x;
+                                break;
+                            case "RIGHT":
+                                otherCarInFront = otherCar.x < this.x;
+                                break;
+                        }
+                        
+                        if (otherCarInFront && distance < minDistance) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            
+            private double getDistanceTo(Car otherCar) {
+                double dx = this.x - otherCar.x;
+                double dy = this.y - otherCar.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+            
+            // SMART DRIVER: Check if near intersection
+            private boolean isNearIntersection(int centerX, int centerY) {
+                double distanceToIntersection = 70;
+                
+                switch (direction) {
+                    case "TOP":
+                        return Math.abs(y - (centerY - intersectionSize / 2)) < distanceToIntersection && y < centerY;
+                    case "BOTTOM":
+                        return Math.abs(y - (centerY + intersectionSize / 2)) < distanceToIntersection && y > centerY;
+                    case "LEFT":
+                        return Math.abs(x - (centerX - intersectionSize / 2)) < distanceToIntersection && x < centerX;
+                    case "RIGHT":
+                        return Math.abs(x - (centerX + intersectionSize / 2)) < distanceToIntersection && x > centerX;
+                }
+                return false;
+            }
+            
+            // SMART DRIVER: Check for cross-traffic
+            private boolean isCrossTrafficApproaching(int centerX, int centerY) {
+                double safeDistance = 150;
+                double intersectionCheckRadius = intersectionSize / 2 + 50;
+                
+                for (Car otherCar : cars) {
+                    if (otherCar == this) continue;
+                    
+                    boolean isCrossDirection = false;
+                    switch (this.direction) {
+                        case "TOP":
+                        case "BOTTOM":
+                            isCrossDirection = otherCar.direction.equals("LEFT") || otherCar.direction.equals("RIGHT");
+                            break;
+                        case "LEFT":
+                        case "RIGHT":
+                            isCrossDirection = otherCar.direction.equals("TOP") || otherCar.direction.equals("BOTTOM");
+                            break;
+                    }
+                    
+                    if (!isCrossDirection) continue;
+                    
+                    double distanceToCenter = Math.sqrt(
+                        Math.pow(otherCar.x - centerX, 2) + 
+                        Math.pow(otherCar.y - centerY, 2)
+                    );
+                    
+                    if (distanceToCenter < intersectionCheckRadius) {
+                        if (otherCar.speed > 0.5 || otherCar.inIntersection) {
+                            return true;
+                        }
+                    }
+                    
+                    boolean otherCarApproaching = false;
+                    switch (otherCar.direction) {
+                        case "TOP":
+                            otherCarApproaching = otherCar.y < centerY && 
+                                Math.abs(otherCar.y - (centerY - intersectionSize / 2)) < safeDistance;
+                            break;
+                        case "BOTTOM":
+                            otherCarApproaching = otherCar.y > centerY && 
+                                Math.abs(otherCar.y - (centerY + intersectionSize / 2)) < safeDistance;
+                            break;
+                        case "LEFT":
+                            otherCarApproaching = otherCar.x < centerX && 
+                                Math.abs(otherCar.x - (centerX - intersectionSize / 2)) < safeDistance;
+                            break;
+                        case "RIGHT":
+                            otherCarApproaching = otherCar.x > centerX && 
+                                Math.abs(otherCar.x - (centerX + intersectionSize / 2)) < safeDistance;
+                            break;
+                    }
+                    
+                    if (otherCarApproaching && otherCar.speed > 0.5) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
 
             public void update() {
                 if (completed) return;
+
+                int panelWidth = getWidth();
+                int panelHeight = getHeight();
+                int centerX = panelWidth / 2;
+                int centerY = panelHeight / 2;
+
+                if (isCarTooClose()) {
+                    waiting = true;
+                    speed = Math.max(0, speed - acceleration * 2);
+                    return;
+                }
+                
+                if (!waiting && speed < maxSpeed) {
+                    speed = Math.min(maxSpeed, speed + acceleration);
+                }
 
                 boolean canGo = false;
                 switch (direction) {
@@ -680,22 +747,47 @@ public class TrafficDeadlockSimulator extends JFrame {
                         canGo = rightLight.isGreen;
                         break;
                 }
+                
+                // SMART DRIVER BEHAVIOR: Only active when checkbox is CHECKED
+                if (parent.isBankersEnabled()) {
+                    if (isNearIntersection(centerX, centerY) && !inIntersection) {
+                        if (isCrossTrafficApproaching(centerX, centerY)) {
+                            waiting = true;
+                            speed = Math.max(0, speed - acceleration * 2);
+                            return;
+                        }
+                    }
+                }
 
                 switch (direction) {
                     case "TOP":
-                        if (y < centerY - intersectionSize / 2 - 40) {
+                        if (y < centerY - intersectionSize / 2 - 60) {
                             y += speed;
-                        } else if (y < centerY - intersectionSize / 2 - 30) {
-                            if (canGo) {
-                                y += speed;
-                                inIntersection = true;
-                                waiting = false;
+                            waiting = false;
+                        } else if (y < centerY - intersectionSize / 2 - 50) {
+                            if (parent.isBankersEnabled()) {
+                                // Smart driver: FOLLOW light first, then check cross-traffic
+                                if (canGo && !isCrossTrafficApproaching(centerX, centerY)) {
+                                    y += speed;
+                                    inIntersection = true;
+                                    waiting = false;
+                                } else {
+                                    waiting = true;
+                                    speed = 0;
+                                }
                             } else {
-                                waiting = true;
+                                // Normal behavior: follow light strictly (no intelligence)
+                                if (canGo) {
+                                    y += speed;
+                                    inIntersection = true;
+                                    waiting = false;
+                                } else {
+                                    waiting = true;
+                                    speed = 0;
+                                }
                             }
-                        } else if (y < getHeight()) {
+                        } else if (y < panelHeight) {
                             y += speed;
-                            // leave intersection after passing center
                             if (y > centerY + intersectionSize / 2 + 80) inIntersection = false;
                         } else {
                             completed = true;
@@ -703,15 +795,30 @@ public class TrafficDeadlockSimulator extends JFrame {
                         break;
 
                     case "BOTTOM":
-                        if (y > centerY + intersectionSize / 2 + 40) {
+                        if (y > centerY + intersectionSize / 2 + 60) {
                             y -= speed;
-                        } else if (y > centerY + intersectionSize / 2 + 30) {
-                            if (canGo) {
-                                y -= speed;
-                                inIntersection = true;
-                                waiting = false;
+                            waiting = false;
+                        } else if (y > centerY + intersectionSize / 2 + 50) {
+                            if (parent.isBankersEnabled()) {
+                                // Smart driver: FOLLOW light first, then check cross-traffic
+                                if (canGo && !isCrossTrafficApproaching(centerX, centerY)) {
+                                    y -= speed;
+                                    inIntersection = true;
+                                    waiting = false;
+                                } else {
+                                    waiting = true;
+                                    speed = 0;
+                                }
                             } else {
-                                waiting = true;
+                                // Normal behavior: follow light strictly (no intelligence)
+                                if (canGo) {
+                                    y -= speed;
+                                    inIntersection = true;
+                                    waiting = false;
+                                } else {
+                                    waiting = true;
+                                    speed = 0;
+                                }
                             }
                         } else if (y > 0) {
                             y -= speed;
@@ -722,17 +829,32 @@ public class TrafficDeadlockSimulator extends JFrame {
                         break;
 
                     case "LEFT":
-                        if (x < centerX - intersectionSize / 2 - 40) {
+                        if (x < centerX - intersectionSize / 2 - 60) {
                             x += speed;
-                        } else if (x < centerX - intersectionSize / 2 - 30) {
-                            if (canGo) {
-                                x += speed;
-                                inIntersection = true;
-                                waiting = false;
+                            waiting = false;
+                        } else if (x < centerX - intersectionSize / 2 - 50) {
+                            if (parent.isBankersEnabled()) {
+                                // Smart driver: FOLLOW light first, then check cross-traffic
+                                if (canGo && !isCrossTrafficApproaching(centerX, centerY)) {
+                                    x += speed;
+                                    inIntersection = true;
+                                    waiting = false;
+                                } else {
+                                    waiting = true;
+                                    speed = 0;
+                                }
                             } else {
-                                waiting = true;
+                                // Normal behavior: follow light strictly (no intelligence)
+                                if (canGo) {
+                                    x += speed;
+                                    inIntersection = true;
+                                    waiting = false;
+                                } else {
+                                    waiting = true;
+                                    speed = 0;
+                                }
                             }
-                        } else if (x < getWidth()) {
+                        } else if (x < panelWidth) {
                             x += speed;
                             if (x > centerX + intersectionSize / 2 + 80) inIntersection = false;
                         } else {
@@ -741,15 +863,30 @@ public class TrafficDeadlockSimulator extends JFrame {
                         break;
 
                     case "RIGHT":
-                        if (x > centerX + intersectionSize / 2 + 40) {
+                        if (x > centerX + intersectionSize / 2 + 60) {
                             x -= speed;
-                        } else if (x > centerX + intersectionSize / 2 + 30) {
-                            if (canGo) {
-                                x -= speed;
-                                inIntersection = true;
-                                waiting = false;
+                            waiting = false;
+                        } else if (x > centerX + intersectionSize / 2 + 50) {
+                            if (parent.isBankersEnabled()) {
+                                // Smart driver: FOLLOW light first, then check cross-traffic
+                                if (canGo && !isCrossTrafficApproaching(centerX, centerY)) {
+                                    x -= speed;
+                                    inIntersection = true;
+                                    waiting = false;
+                                } else {
+                                    waiting = true;
+                                    speed = 0;
+                                }
                             } else {
-                                waiting = true;
+                                // Normal behavior: follow light strictly (no intelligence)
+                                if (canGo) {
+                                    x -= speed;
+                                    inIntersection = true;
+                                    waiting = false;
+                                } else {
+                                    waiting = true;
+                                    speed = 0;
+                                }
                             }
                         } else if (x > 0) {
                             x -= speed;
@@ -763,7 +900,6 @@ public class TrafficDeadlockSimulator extends JFrame {
 
             public void draw(Graphics2D g2) {
                 if (direction.equals("LEFT") || direction.equals("RIGHT")) {
-                    // Horizontal orientation
                     g2.setColor(color);
                     g2.fillRoundRect((int) x - 20, (int) y - 12, 40, 24, 8, 8);
                     g2.setColor(Color.BLACK);
@@ -773,7 +909,6 @@ public class TrafficDeadlockSimulator extends JFrame {
                     g2.setColor(new Color(100, 150, 200, 150));
                     g2.fillRect((int) x - 5, (int) y - 8, 10, 16);
                 } else {
-                    // Vertical orientation
                     g2.setColor(color);
                     g2.fillRoundRect((int) x - 12, (int) y - 20, 24, 40, 8, 8);
                     g2.setColor(Color.BLACK);
