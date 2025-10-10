@@ -6,7 +6,7 @@
   <img src="https://readme-typing-svg.herokuapp.com?font=Inter&weight=400&size=20&duration=1&pause=99999&color=9FB1D6&center=true&vCenter=true&width=800&lines=Simulation+of+Deadlock+Handling+Algorithms" alt="Subtitle" />
 </div>
 
----
+--- 
 
 ## 🎯 Project Overview
 
