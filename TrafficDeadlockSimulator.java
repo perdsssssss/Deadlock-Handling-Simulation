@@ -50,10 +50,10 @@ public class TrafficDeadlockSimulator extends JFrame {
         controlPanel.add(addLabel);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        addTopBtn = createButton("🚗 From TOP", new Color(255, 105, 180));
-        addBottomBtn = createButton("🚗 From BOTTOM", new Color(255, 105, 180));
-        addLeftBtn = createButton("🚗 From LEFT", new Color(255, 105, 180));
-        addRightBtn = createButton("🚗 From RIGHT", new Color(255, 105, 180));
+        addTopBtn = createButton("From TOP", new Color(255, 105, 180));
+        addBottomBtn = createButton("From BOTTOM", new Color(255, 105, 180));
+        addLeftBtn = createButton("From LEFT", new Color(255, 105, 180));
+        addRightBtn = createButton("From RIGHT", new Color(255, 105, 180));
 
         controlPanel.add(addTopBtn);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 5)));
@@ -64,9 +64,9 @@ public class TrafficDeadlockSimulator extends JFrame {
         controlPanel.add(addRightBtn);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        toggleAllBtn = createButton("🚦 Toggle All Lights", new Color(255, 140, 0));
-        bankersBtn = createButton("🛡️ Check Safe State", new Color(34, 139, 34));
-        resetBtn = createButton("🔄 Reset", Color.GRAY);
+        toggleAllBtn = createButton("Toggle All Traffic Lights", new Color(255, 140, 0));
+        bankersBtn = createButton("Check Safe State", new Color(34, 139, 34));
+        resetBtn = createButton("Reset", Color.GRAY);
 
         controlPanel.add(toggleAllBtn);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 5)));
@@ -186,6 +186,8 @@ public class TrafficDeadlockSimulator extends JFrame {
 
         private boolean deadlockDetected = false;
         private boolean deadlockShownDialog = false;
+        private boolean circularDeadlockDetected = false;
+        private boolean circularDeadlockShownDialog = false;
         private Random rand = new Random();
         
         private Map<String, Long> lastCarAddedTimeByDirection = new HashMap<>();
@@ -225,6 +227,8 @@ public class TrafficDeadlockSimulator extends JFrame {
                     if (topLight.isGreen || bottomLight.isGreen || leftLight.isGreen || rightLight.isGreen) {
                         deadlockDetected = false;
                         deadlockShownDialog = false;
+                        circularDeadlockDetected = false;
+                        circularDeadlockShownDialog = false;
                     }
                     repaint();
                 }
@@ -250,6 +254,8 @@ public class TrafficDeadlockSimulator extends JFrame {
             if (newState) {
                 deadlockDetected = false;
                 deadlockShownDialog = false;
+                circularDeadlockDetected = false;
+                circularDeadlockShownDialog = false;
             }
             repaint();
         }
@@ -335,6 +341,8 @@ public class TrafficDeadlockSimulator extends JFrame {
             rightLight.isGreen = true;
             deadlockDetected = false;
             deadlockShownDialog = false;
+            circularDeadlockDetected = false;
+            circularDeadlockShownDialog = false;
             lastCarAddedTimeByDirection.clear();
         }
 
@@ -370,16 +378,16 @@ public class TrafficDeadlockSimulator extends JFrame {
                             if ((a.inIntersection || b.inIntersection) || (!a.waiting && !b.waiting)) {
                                 deadlockDetected = true;
                                 parent.log("🚨 DEADLOCK: Car#" + a.id + " & Car#" + b.id + " collided!");
-                                if (!deadlockShownDialog) {
-                                    JOptionPane.showMessageDialog(parent,
-                                            "🚨 DEADLOCK DETECTED!\n\n" +
-                                                    "Car#" + a.id + " and Car#" + b.id + " collided!\n" +
-                                                    "This happened because Banker's Algorithm is disabled.\n\n" +
-                                                    "Enable Banker's Algorithm to prevent DEADLOCK!",
-                                            "DEADLOCK",
-                                            JOptionPane.ERROR_MESSAGE);
-                                    deadlockShownDialog = true;
-                                }
+                                // if (!deadlockShownDialog) {
+                                //     JOptionPane.showMessageDialog(parent,
+                                //             "🚨 DEADLOCK DETECTED!\n\n" +
+                                //                     "Car#" + a.id + " and Car#" + b.id + " collided!\n" +
+                                //                     "This happened because Banker's Algorithm is disabled.\n\n" +
+                                //                     "Enable Banker's Algorithm to prevent DEADLOCK!",
+                                //             "DEADLOCK",
+                                //             JOptionPane.ERROR_MESSAGE);
+                                //     deadlockShownDialog = true;
+                                // }
                                 return;
                             }
                         }
@@ -395,16 +403,16 @@ public class TrafficDeadlockSimulator extends JFrame {
                     if (c.direction.equals("RIGHT") && c.isWaitingAtLight()) rWait = true;
                 }
                 if (allRed && tWait && bWait && lWait && rWait) {
-                    deadlockDetected = true;
-                    if (!deadlockShownDialog) {
-                        JOptionPane.showMessageDialog(parent,
-                                "🚨 DEADLOCK DETECTED!\n\n" +
-                                        "All directions waiting and all lights RED.\n" +
-                                        "This is a classic circular wait deadlock.\n\n" +
-                                        "Enable Banker's Algorithm to prevent this!",
-                                "Deadlock Detected",
-                                JOptionPane.ERROR_MESSAGE);
-                        deadlockShownDialog = true;
+                    circularDeadlockDetected = true;
+                    if (!circularDeadlockShownDialog) {
+                        // JOptionPane.showMessageDialog(parent,
+                        //         "🚨 DEADLOCK DETECTED!\n\n" +
+                        //                 "All directions waiting and all lights RED.\n" +
+                        //                 "This is a classic circular wait deadlock.\n\n" +
+                        //                 "Enable Banker's Algorithm to prevent this!",
+                        //         "Deadlock Detected",
+                        //         JOptionPane.ERROR_MESSAGE);
+                        circularDeadlockShownDialog = true;
                     }
                 }
             }
@@ -467,6 +475,28 @@ public class TrafficDeadlockSimulator extends JFrame {
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("Arial", Font.BOLD, 72));
                 String text = "DEADLOCK!";
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (panelWidth - fm.stringWidth(text)) / 2;
+                int ty = (panelHeight / 2) - fm.getHeight() / 2 + fm.getAscent();
+                g2.drawString(text, tx, ty);
+
+                g2.setFont(new Font("Arial", Font.BOLD, 20));
+                String sub = "Enable Banker's Algorithm to prevent this";
+                FontMetrics fm2 = g2.getFontMetrics();
+                int sx = (panelWidth - fm2.stringWidth(sub)) / 2;
+                g2.drawString(sub, sx, ty + 50);
+            }
+
+            if (circularDeadlockDetected) {
+                Composite old = g2.getComposite();
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.55f));
+                g2.setColor(Color.RED);
+                g2.fillRect(0, 0, panelWidth, panelHeight);
+                g2.setComposite(old);
+
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Arial", Font.BOLD, 72));
+                String text = "CIRCULAR DEADLOCK!";
                 FontMetrics fm = g2.getFontMetrics();
                 int tx = (panelWidth - fm.stringWidth(text)) / 2;
                 int ty = (panelHeight / 2) - fm.getHeight() / 2 + fm.getAscent();
