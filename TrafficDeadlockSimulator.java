@@ -1,11 +1,14 @@
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.*;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.Timer;
 
 public class TrafficDeadlockSimulator extends JFrame {
+    private CardLayout cardLayout;
+    private JPanel mainContainer;
     private TrafficPanel trafficPanel;
     private JButton addTopBtn, addBottomBtn, addLeftBtn, addRightBtn;
     private JButton resetBtn, bankersBtn, toggleAllBtn;
@@ -13,20 +16,270 @@ public class TrafficDeadlockSimulator extends JFrame {
     private JCheckBox bankersCheckBox;
 
     public TrafficDeadlockSimulator() {
-        setTitle("Deadlock Simulator");
-        setSize(1400, 900);
+        setTitle("Traffic Deadlock Simulator");
+        setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(15, 15));
-        
         setResizable(false);
         setLocationRelativeTo(null);
-        
-        // Set window icon and background
-        getContentPane().setBackground(new Color(45, 52, 65));
 
+        cardLayout = new CardLayout();
+        mainContainer = new JPanel(cardLayout);
+
+        // Create landing page
+        JPanel landingPage = createLandingPage();
+        mainContainer.add(landingPage, "landing");
+
+        // Create simulation page
+        JPanel simulationPage = createSimulationPage();
+        mainContainer.add(simulationPage, "simulation");
+
+        add(mainContainer);
+        cardLayout.show(mainContainer, "landing");
+    }
+
+    private JPanel createLandingPage() {
+        JPanel landing = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Solid background matching simulation
+                g2.setColor(new Color(44, 62, 80)); // greyish blue
+                g2.fillRect(0, 0, getWidth(), getHeight());
+
+                // Animated road lines (optional, keep for effect)
+                g2.setColor(new Color(255, 255, 255, 30));
+                g2.setStroke(new BasicStroke(3));
+                for (int i = 0; i < 20; i++) {
+                    int y = i * 50 + ((int)(System.currentTimeMillis() / 20) % 50);
+                    g2.drawLine(200, y, 250, y + 30);
+                    g2.drawLine(getWidth() - 250, y, getWidth() - 200, y + 30);
+                }
+            }
+        };
+        landing.setLayout(new GridBagLayout());
+
+        // Create animated timer for road lines
+        Timer animTimer = new Timer(50, e -> landing.repaint());
+        animTimer.start();
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setOpaque(false);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(40, 60, 40, 60));
+
+        // Traffic Light Icon
+        JPanel iconPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int centerX = getWidth() / 2;
+                int y = 20;
+
+                // Traffic light box
+                g2.setColor(new Color(40, 40, 40));
+                g2.fillRoundRect(centerX - 30, y, 60, 140, 15, 15);
+
+                // Red light
+                g2.setColor(new Color(244, 67, 54));
+                g2.fillOval(centerX - 20, y + 10, 40, 40);
+
+                // Yellow light
+                g2.setColor(new Color(255, 235, 59));
+                g2.fillOval(centerX - 20, y + 55, 40, 40);
+
+                // Green light (glowing)
+                g2.setColor(new Color(76, 175, 80));
+                g2.fillOval(centerX - 20, y + 100, 40, 40);
+                g2.setColor(new Color(129, 199, 132));
+                g2.fillOval(centerX - 15, y + 105, 30, 30);
+            }
+        };
+        iconPanel.setOpaque(false);
+        iconPanel.setPreferredSize(new Dimension(100, 180));
+        iconPanel.setMaximumSize(new Dimension(100, 180));
+        iconPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(iconPanel);
+
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Title
+        JLabel titleLabel = new JLabel("Traffic Deadlock Simulator");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 48));
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(titleLabel);
+
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        // Subtitle - Centered properly
+        JLabel subtitleLabel = new JLabel("<html><div style='text-align: center;'>Understanding Deadlock Through Real-World Traffic Scenarios</div></html>");
+        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        subtitleLabel.setForeground(new Color(200, 230, 255));
+        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        subtitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        contentPanel.add(subtitleLabel);
+
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 40)));
+
+        // Feature cards
+        JPanel featuresPanel = new JPanel(new GridLayout(1, 3, 20, 0));
+        featuresPanel.setOpaque(false);
+        featuresPanel.setMaximumSize(new Dimension(900, 140));
+
+        featuresPanel.add(createFeatureCard("Right-Side Traffic", "Vehicles follow right-side traffic rules"));
+        featuresPanel.add(createFeatureCard("Banker's Algorithm", "Intelligent deadlock prevention"));
+        featuresPanel.add(createFeatureCard("Interactive Control", "Manage lights and observe behavior"));
+
+        contentPanel.add(featuresPanel);
+
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 50)));
+
+        // Start button
+        JButton startButton = new JButton("START SIMULATION") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                if (getModel().isPressed()) {
+                    g2.setColor(new Color(56, 142, 60));
+                } else if (getModel().isRollover()) {
+                    g2.setColor(new Color(76, 175, 80));
+                } else {
+                    g2.setColor(new Color(67, 160, 71));
+                }
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 30, 30);
+
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Arial", Font.BOLD, 20));
+                FontMetrics fm = g2.getFontMetrics();
+                String text = getText();
+                int x = (getWidth() - fm.stringWidth(text)) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2.drawString(text, x, y);
+            }
+        };
+        startButton.setPreferredSize(new Dimension(280, 60));
+        startButton.setMaximumSize(new Dimension(280, 60));
+        startButton.setFont(new Font("Arial", Font.BOLD, 20));
+        startButton.setForeground(Color.WHITE);
+        startButton.setContentAreaFilled(false);
+        startButton.setBorderPainted(false);
+        startButton.setFocusPainted(false);
+        startButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        startButton.addActionListener(e -> {
+            cardLayout.show(mainContainer, "simulation");
+            log("=== Traffic Simulator Started ===");
+            log("System initialized with Banker's Algorithm enabled.");
+            log("Add cars and observe deadlock prevention!\n");
+        });
+        contentPanel.add(startButton);
+
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        // Info text
+        JLabel infoLabel = new JLabel("<html><div style='text-align: center;'>The Forensic Five<br>John Paul Calub | Ferdinand Corbin Jr. | John Mikael Evangelista |<br>Tristan Jay Sevilla | Alvhin Solo</div></html>");
+        infoLabel.setFont(new Font("Arial", Font.PLAIN, 15));
+        infoLabel.setForeground(new Color(200, 230, 255));
+        infoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        infoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        contentPanel.add(infoLabel);
+
+        landing.add(contentPanel);
+        return landing;
+    }
+
+    private JPanel createFeatureCard(String title, String description) {
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(255, 255, 255, 20));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                g2.setColor(new Color(255, 255, 255, 40));
+                g2.setStroke(new BasicStroke(2));
+                g2.drawRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 20, 20);
+            }
+        };
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setOpaque(false);
+        card.setBorder(BorderFactory.createEmptyBorder(20, 15, 20, 15));
+
+        // Icon based on title
+        JPanel iconPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int centerX = getWidth() / 2;
+                int centerY = getHeight() / 2;
+
+                if (title.equals("Right-Side Traffic")) {
+                    // Draw a car
+                    g2.setColor(new Color(244, 67, 54));
+                    g2.fillRoundRect(centerX - 20, centerY - 10, 40, 20, 8, 8);
+                    g2.setColor(new Color(100, 150, 200, 180));
+                    g2.fillRect(centerX - 5, centerY - 6, 10, 12);
+                } else if (title.equals("Banker's Algorithm")) {
+                    // Draw brain/algorithm symbol
+                    g2.setColor(new Color(156, 39, 176));
+                    g2.fillOval(centerX - 15, centerY - 15, 30, 30);
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(new Font("Arial", Font.BOLD, 20));
+                    g2.drawString("B", centerX - 7, centerY + 7);
+                } else {
+                    // Draw control icon
+                    g2.setColor(new Color(255, 152, 0));
+                    g2.fillRoundRect(centerX - 15, centerY - 15, 30, 30, 8, 8);
+                    g2.setColor(Color.WHITE);
+                    g2.fillOval(centerX - 6, centerY - 6, 12, 12);
+                }
+            }
+        };
+        iconPanel.setOpaque(false);
+        iconPanel.setPreferredSize(new Dimension(50, 50));
+        iconPanel.setMaximumSize(new Dimension(50, 50));
+        iconPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(iconPanel);
+
+        card.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        JLabel titleLbl = new JLabel("<html><div style='text-align: center;'>" + title + "</div></html>");
+        titleLbl.setFont(new Font("Arial", Font.BOLD, 16));
+        titleLbl.setForeground(Color.WHITE);
+        titleLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titleLbl.setHorizontalAlignment(SwingConstants.CENTER);
+        card.add(titleLbl);
+
+        card.add(Box.createRigidArea(new Dimension(0, 8)));
+
+        JLabel descLbl = new JLabel("<html><div style='text-align: center;'>" + description + "</div></html>");
+        descLbl.setFont(new Font("Arial", Font.PLAIN, 12));
+        descLbl.setForeground(new Color(200, 230, 255));
+        descLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+        descLbl.setHorizontalAlignment(SwingConstants.CENTER);
+        card.add(descLbl);
+
+        return card;
+    }
+
+    private JPanel createSimulationPage() {
         trafficPanel = new TrafficPanel(this);
 
-        // Enhanced Control Panel with modern design
+        JPanel simulationPanel = new JPanel(new BorderLayout());
+        simulationPanel.setBackground(new Color(44, 62, 80));
+
+        // Control panel on the left
         JPanel controlPanel = new JPanel();
         controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
         controlPanel.setPreferredSize(new Dimension(300, 0));
@@ -130,32 +383,10 @@ public class TrafficDeadlockSimulator extends JFrame {
         bankersBtn.addActionListener(e -> checkBankersAlgorithm());
         toggleAllBtn.addActionListener(e -> trafficPanel.toggleAllLights());
 
-        add(trafficPanel, BorderLayout.CENTER);
-        add(controlPanel, BorderLayout.EAST);
+        simulationPanel.add(trafficPanel, BorderLayout.CENTER);
+        simulationPanel.add(controlPanel, BorderLayout.EAST);
 
-        log("Traffic Deadlock Simulator Ready!");
-        log("=====================================");
-        log("FEATURES:");
-        log("- RIGHT SIDE TRAFFIC (all cars)");
-        log("- Deadlock detection and avoidance");
-        log("- Click lights to control individually");
-        log("- Toggle All Lights button");
-        log("");
-        log("USAGE:");
-        log("1. BANKER'S ALGORITHM ON (checkbox checked):");
-        log("   - Cars intelligently avoid collisions");
-        log("   - System prevents deadlock scenarios");
-        log("   - Safe even with all RED lights");
-        log("");
-        log("2. BANKER'S ALGORITHM OFF (checkbox unchecked):");
-        log("   - Cars follow lights strictly");
-        log("   - Can cause deadlock/collision");
-        log("   - Turn all lights RED to test!");
-        log("");
-        log("3. Try different scenarios:");
-        log("   - Add cars from all directions");
-        log("   - Toggle Banker's Algorithm ON/OFF");
-        log("   - Control lights manually\n");
+        return simulationPanel;
     }
 
     private JButton createModernButton(String text, Color bgColor, Color hoverColor) {
@@ -1742,187 +1973,6 @@ public class TrafficDeadlockSimulator extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new IntroScreen();
-        });
-    }
-}
-
-// Intro Screen Class
-class IntroScreen extends JFrame {
-    private Timer pulseTimer;
-    private float pulseAlpha = 0.5f;
-    private boolean pulseDirection = true;
-    
-    public IntroScreen() {
-        setTitle("Traffic Deadlock Simulator");
-        setSize(800, 600);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setResizable(false);
-        
-        // Create intro panel
-        JPanel introPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Background gradient
-                GradientPaint gradient = new GradientPaint(0, 0, new Color(44, 62, 80), 
-                                                          0, getHeight(), new Color(52, 73, 94));
-                g2.setPaint(gradient);
-                g2.fillRect(0, 0, getWidth(), getHeight());
-                
-                // Title
-                g2.setColor(new Color(236, 240, 241));
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 48));
-                FontMetrics fm = g2.getFontMetrics();
-                String title = "Traffic Deadlock Simulator";
-                int x = (getWidth() - fm.stringWidth(title)) / 2;
-                g2.drawString(title, x, 120);
-                
-                // Subtitle
-                g2.setFont(new Font("Segoe UI", Font.PLAIN, 24));
-                fm = g2.getFontMetrics();
-                String subtitle = "Advanced Deadlock Detection & Avoidance System";
-                x = (getWidth() - fm.stringWidth(subtitle)) / 2;
-                g2.setColor(new Color(52, 152, 219));
-                g2.drawString(subtitle, x, 160);
-                
-                // Features
-                g2.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-                g2.setColor(new Color(149, 165, 166));
-                String[] features = {
-                    "Real-time Traffic Simulation",
-                    "Banker's Algorithm Implementation", 
-                    "Circular Wait Deadlock Detection",
-                    "Interactive Traffic Light Control",
-                    "Right-Side Traffic System"
-                };
-                
-                int startY = 220;
-                for (int i = 0; i < features.length; i++) {
-                    fm = g2.getFontMetrics();
-                    x = (getWidth() - fm.stringWidth("• " + features[i])) / 2;
-                    g2.drawString("• " + features[i], x, startY + (i * 30));
-                }
-                
-                // Interactive prompt with pulsing effect
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, pulseAlpha));
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
-                g2.setColor(new Color(241, 196, 15));
-                String prompt = "Click anywhere to start simulation";
-                fm = g2.getFontMetrics();
-                x = (getWidth() - fm.stringWidth(prompt)) / 2;
-                g2.drawString(prompt, x, 420);
-                
-                // Reset composite for other elements
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-                
-                // Start button visual - centered
-                int buttonWidth = 200;
-                int buttonHeight = 50;
-                int buttonX = (getWidth() - buttonWidth) / 2;
-                int buttonY = 450;
-                
-                g2.setColor(new Color(46, 204, 113, (int) (255 * pulseAlpha)));
-                g2.fillRoundRect(buttonX, buttonY, buttonWidth, buttonHeight, 15, 15);
-                g2.setColor(new Color(39, 174, 96));
-                g2.setStroke(new BasicStroke(2));
-                g2.drawRoundRect(buttonX, buttonY, buttonWidth, buttonHeight, 15, 15);
-                
-                g2.setColor(new Color(255, 255, 255));
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
-                String buttonText = "START SIMULATOR";
-                fm = g2.getFontMetrics();
-                x = (getWidth() - fm.stringWidth(buttonText)) / 2;
-                g2.drawString(buttonText, x, buttonY + 32);
-                
-                // Team Credits
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
-                g2.setColor(new Color(52, 152, 219));
-                String projectTitle = "The Forensic Five";
-                fm = g2.getFontMetrics();
-                x = (getWidth() - fm.stringWidth(projectTitle)) / 2;
-                g2.drawString(projectTitle, x, 525);
-                
-                // Development Team
-                g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-                g2.setColor(new Color(149, 165, 166));
-                String[] teamMembers = {
-                    "John Paul Calub • Ferdinand Corbin Jr. • John Mikael Evangelista",
-                    "Tristan Jay Sevilla • Alvhin Solo"
-                };
-                
-                for (int i = 0; i < teamMembers.length; i++) {
-                    fm = g2.getFontMetrics();
-                    x = (getWidth() - fm.stringWidth(teamMembers[i])) / 2;
-                    g2.drawString(teamMembers[i], x, 545 + (i * 12));
-                }
-                
-                // Instructions
-                g2.setFont(new Font("Segoe UI", Font.ITALIC, 10));
-                g2.setColor(new Color(127, 140, 141));
-                String instructions = "Click or press SPACE to continue";
-                fm = g2.getFontMetrics();
-                x = (getWidth() - fm.stringWidth(instructions)) / 2;
-                g2.drawString(instructions, x, 580);
-            }
-        };
-        
-        introPanel.setBackground(new Color(44, 62, 80));
-        add(introPanel);
-        
-        // Add mouse and keyboard listeners for interaction
-        addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                startSimulator();
-            }
-        });
-        
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    startSimulator();
-                } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    System.exit(0);
-                }
-            }
-        });
-        
-        setFocusable(true);
-        requestFocus();
-        setVisible(true);
-        
-        // Pulsing animation for the prompt
-        pulseTimer = new Timer(50, new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                if (pulseDirection) {
-                    pulseAlpha += 0.02f;
-                    if (pulseAlpha >= 1.0f) {
-                        pulseAlpha = 1.0f;
-                        pulseDirection = false;
-                    }
-                } else {
-                    pulseAlpha -= 0.02f;
-                    if (pulseAlpha <= 0.3f) {
-                        pulseAlpha = 0.3f;
-                        pulseDirection = true;
-                    }
-                }
-                repaint();
-            }
-        });
-        pulseTimer.start();
-    }
-    
-    private void startSimulator() {
-        pulseTimer.stop();
-        dispose();
         SwingUtilities.invokeLater(() -> {
             TrafficDeadlockSimulator sim = new TrafficDeadlockSimulator();
             sim.setVisible(true);
