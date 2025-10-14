@@ -2,7 +2,7 @@
   <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=700&size=40&duration=1&pause=99999&color=DC2626&center=true&vCenter=true&width=800&lines=Traffic+Deadlock+Simulator" alt="Traffic Deadlock Simulator Title" />
 </div>
 
-<div align="center">
+<div align="center"> 
   <img src="https://readme-typing-svg.herokuapp.com?font=Inter&weight=400&size=20&duration=1&pause=99999&color=9FB1D6&center=true&vCenter=true&width=800&lines=Simulation+of+Deadlock+Handling+Algorithms" alt="Subtitle" />
 </div>
 
